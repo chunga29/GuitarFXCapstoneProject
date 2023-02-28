@@ -23,11 +23,21 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
 #endif
 {
     state = new AudioProcessorValueTreeState(*this, nullptr);
+    state->createAndAddParameter("attack", "Attack", "Attack", NormalisableRange<float>(1.f, 100.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("release", "Release", "Release", NormalisableRange<float>(1.f, 300.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("thresh", "Threshold", "Threshold", NormalisableRange<float>(0.f, 100.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("comp gain", "Comp Gain", "Comp Gain", NormalisableRange<float>(0.f, 10.f, 0.0001f), 1.0, nullptr, nullptr);
+
     state->createAndAddParameter("drive", "Drive", "Drive", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
     state->createAndAddParameter("range", "Range", "Range", NormalisableRange<float>(0.f, 3000.f, 0.0001f), 1.0, nullptr, nullptr);
     state->createAndAddParameter("blend", "Blend", "Blend", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
     state->createAndAddParameter("volume", "Volume", "Volume", NormalisableRange<float>(0.f, 3.f, 0.0001f), 1.0, nullptr, nullptr);
 
+    state->state = ValueTree("attack");
+    state->state = ValueTree("release");
+    state->state = ValueTree("threshold");
+    state->state = ValueTree("comp gain");
+    
     state->state = ValueTree("drive");
     state->state = ValueTree("range");
     state->state = ValueTree("blend");
@@ -105,6 +115,16 @@ void Guitarfxcapstone4AudioProcessor::prepareToPlay (double sampleRate, int samp
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+
+    dsp::ProcessSpec spec;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.numChannels = getTotalNumOutputChannels();
+    spec.sampleRate = sampleRate;
+
+    if (getTotalNumOutputChannels() > 0) {
+        compressor.prepare(spec);
+    }
+    
 }
 
 void Guitarfxcapstone4AudioProcessor::releaseResources()
@@ -154,8 +174,19 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
+    auto block = dsp::AudioBlock<float>(buffer);
+    auto context = dsp::ProcessContextReplacing<float>(block);
+
+    float attack = *state->getRawParameterValue("attack");
+    float release = *state->getRawParameterValue("release");
+    float threshold = *state->getRawParameterValue("thresh");
+    float compgain = *state->getRawParameterValue("comp gain");
+
+    compressor.process(context);
+    compressor.setAttack(attack);
+    compressor.setRelease(release);
+    compressor.setThreshold(threshold * -1.0);
+    compressor.setRatio(25.0f);
 
     // Make sure to reset the state if your inner loop is processing
     // the samples and the outer loop is handling the channels.

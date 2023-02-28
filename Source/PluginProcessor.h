@@ -56,8 +56,8 @@ public:
     AudioProcessorValueTreeState& getState();
 
 private:
-
     ScopedPointer<AudioProcessorValueTreeState> state;
+    dsp::Compressor<float> compressor;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessor)
