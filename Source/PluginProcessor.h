@@ -54,10 +54,22 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     AudioProcessorValueTreeState& getState();
+    void fillDelayBuffer(int channel, const int bufferLength, const int delayBufferLength,
+        const float* bufferData, const float* delayBufferData, const float gain);
+
+    void getFromDelayBuffer(AudioBuffer<float>& buffer, int channel, const int bufferLength,
+        const int delayBufferLength, const float* bufferData, const float* delayBufferData, const float* wetBufferData, int delayTime);
+
+    void feedbackDelay(int channel, const int bufferLength,
+        const int delayBufferLength, const float* dryBuffer, float fdbk_amt);
 
 private:
     ScopedPointer<AudioProcessorValueTreeState> state;
     dsp::Compressor<float> compressor;
+
+    AudioBuffer<float> mDelayBuffer, wetBuffer, drySignal;
+    int mWritePosition { 0 };
+    int mSampleRate { 44100 };
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessor)

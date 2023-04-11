@@ -33,6 +33,10 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->createAndAddParameter("blend", "Blend", "Blend", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
     state->createAndAddParameter("volume", "Volume", "Volume", NormalisableRange<float>(0.f, 3.f, 0.0001f), 1.0, nullptr, nullptr);
 
+    state->createAndAddParameter("delay feedback", "Delay Feedback", "Delay Feedback", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("delay time", "Delay Time", "Delay Time", NormalisableRange<float>(0.f, 500.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("delay volume", "Delay Volume", "Delay Volume", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
+
     state->state = ValueTree("attack");
     state->state = ValueTree("release");
     state->state = ValueTree("threshold");
@@ -42,6 +46,10 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->state = ValueTree("range");
     state->state = ValueTree("blend");
     state->state = ValueTree("volume");
+
+    state->state = ValueTree("delay feedback");
+    state->state = ValueTree("delay time");
+    state->state = ValueTree("delay volume");
 }
 
 Guitarfxcapstone4AudioProcessor::~Guitarfxcapstone4AudioProcessor()
@@ -113,9 +121,6 @@ void Guitarfxcapstone4AudioProcessor::changeProgramName (int index, const juce::
 //==============================================================================
 void Guitarfxcapstone4AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
-
     dsp::ProcessSpec spec;
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = getTotalNumOutputChannels();
@@ -124,7 +129,15 @@ void Guitarfxcapstone4AudioProcessor::prepareToPlay (double sampleRate, int samp
     if (getTotalNumOutputChannels() > 0) {
         compressor.prepare(spec);
     }
+
+    const int numInputChannels = getNumInputChannels();
+    const int delayBufferSize = 2 * (sampleRate * samplesPerBlock); // saves two seconds of past data
     
+    mDelayBuffer.setSize(numInputChannels, delayBufferSize);
+    mSampleRate = sampleRate;
+
+    drySignal.setSize(1, spec.maximumBlockSize);
+    wetBuffer.setSize(1, spec.maximumBlockSize);
 }
 
 void Guitarfxcapstone4AudioProcessor::releaseResources()
@@ -182,6 +195,8 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     float threshold = *state->getRawParameterValue("thresh");
     float compgain = *state->getRawParameterValue("comp gain");
 
+    // Noise Gating
+
     compressor.process(context);
     compressor.setAttack(attack);
     compressor.setRelease(release);
@@ -198,26 +213,102 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     float blend = *state->getRawParameterValue("blend");
     float volume = *state->getRawParameterValue("volume");
 
-    // Distortion
+    float delayFbk = *state->getRawParameterValue("delay feedback");
+    float delayTme = *state->getRawParameterValue("delay time");
+    float delayVol = *state->getRawParameterValue("delay volume");
+
+    const int bufferLength = buffer.getNumSamples();
+    const int delayBufferLength = mDelayBuffer.getNumSamples();
+
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         // buffer carries all of the audio samples
         auto* channelData = buffer.getWritePointer (channel);
 
+        // Distortion
         for (int sample = 0; sample < buffer.getNumSamples(); sample++) {
-
             // Pre-Distortion Signal
-            float cleanSig = *channelData; 
+            float cleanSig = *channelData;
 
             // Range is a drive multiplier
             *channelData *= drive * range;
 
             // Distortion Formula: (2.f / float_Pi) * atan(*channelData)
+            // (Filtering) (Wah Pedal)
             // Signal Forumla: (B% * Distorted + (1 - B)% * Clean) * V
             *channelData = ((((2.f / float_Pi) * atan(*channelData)) * blend) + (cleanSig * (1.f - blend))) * volume;
 
             channelData++;
         }
+
+        // Delay Code
+
+        drySignal.makeCopyOf(buffer, true);
+        const float* bufferData = buffer.getReadPointer(channel);   // dry buffer
+        const float* delayBufferData = mDelayBuffer.getReadPointer(channel); // delay buffer
+        const float* wetBufferData = wetBuffer.getReadPointer(channel);
+        float* dryBuffer = buffer.getWritePointer(channel);
+
+        // Write Dry Buffer into Delay Buffer
+        fillDelayBuffer(channel, bufferLength, delayBufferLength, bufferData, delayBufferData, delayVol);
+
+        // Write Delay Buffer into Wet Buffer
+        getFromDelayBuffer(buffer, channel, bufferLength, delayBufferLength, bufferData, delayBufferData, wetBufferData, delayTme);
+
+        // Add Feedback from Wet Buffer to Delay Buffer
+        feedbackDelay(channel, bufferLength, delayBufferLength, wetBufferData, delayFbk);
+
+        
+    }
+
+    mWritePosition += bufferLength;
+    mWritePosition %= delayBufferLength;
+}
+
+void Guitarfxcapstone4AudioProcessor::fillDelayBuffer(int channel, const int bufferLength, const int delayBufferLength, 
+                                                        const float* bufferData, const float* delayBufferData, const float gain) {
+    //const float gain = 0.3;
+
+    if (delayBufferLength >= bufferLength + mWritePosition) {
+        mDelayBuffer.copyFromWithRamp(channel, mWritePosition, bufferData, bufferLength, gain, gain);
+    }
+    else {
+        const int bufferRemaining = delayBufferLength - mWritePosition;
+        mDelayBuffer.copyFromWithRamp(channel, mWritePosition, bufferData, bufferRemaining, gain, gain);
+        mDelayBuffer.copyFromWithRamp(channel, 0, bufferData, bufferLength - bufferRemaining, gain, gain);
+    }
+}
+
+void Guitarfxcapstone4AudioProcessor::getFromDelayBuffer(AudioBuffer<float>& buffer, int channel, const int bufferLength,
+    const int delayBufferLength, const float* bufferData, const float* delayBufferData, const float* wetBufferData, int delayTime) {
+    //int delayTime = 200;
+    // Different Delays for each channel
+    const int readPosition = static_cast<int>(delayBufferLength + mWritePosition - (mSampleRate * delayTime / 1000)) % delayBufferLength;
+
+    if (delayBufferLength >= bufferLength + readPosition) {
+        wetBuffer.copyFrom(channel, 0, delayBufferData + readPosition, bufferLength);
+    }
+    else {
+        const int bufferRemaining = delayBufferLength - readPosition;
+        wetBuffer.copyFrom(channel, 0, delayBufferData + readPosition, bufferRemaining);
+        wetBuffer.copyFrom(channel, bufferRemaining, delayBufferData, bufferLength - bufferRemaining);
+    }
+
+    buffer.addFrom(channel, 0, wetBufferData, bufferLength);
+}
+
+void Guitarfxcapstone4AudioProcessor::feedbackDelay(int channel, const int bufferLength,
+    const int delayBufferLength, const float* dryBuffer, float fdbk_amt) {
+
+    //float fdbk_amt = 0.8;
+
+    if (delayBufferLength > bufferLength + mWritePosition) {
+        mDelayBuffer.addFromWithRamp(channel, mWritePosition, dryBuffer, bufferLength, fdbk_amt, fdbk_amt);
+    }
+    else {
+        const int bufferRemaining = delayBufferLength - mWritePosition;
+        mDelayBuffer.addFromWithRamp(channel, bufferRemaining, dryBuffer, bufferRemaining, fdbk_amt, fdbk_amt);
+        mDelayBuffer.addFromWithRamp(channel, 0, dryBuffer, bufferLength - bufferRemaining, fdbk_amt, fdbk_amt);
     }
 }
 
