@@ -13,6 +13,15 @@
 //==============================================================================
 /**
 */
+
+struct EQChainSettings {
+    float peakGain{ 0 };
+    float lowShelfGain{ 0 };
+    float highShelfGain{ 0 };
+};
+
+EQChainSettings getEQChainSettings(juce::AudioProcessorValueTreeState& apvts);
+
 class Guitarfxcapstone4AudioProcessor  : public juce::AudioProcessor
 {
 public:
@@ -63,6 +72,8 @@ public:
     void feedbackDelay(int channel, const int bufferLength,
         const int delayBufferLength, const float* dryBuffer, float fdbk_amt);
 
+
+
 private:
     ScopedPointer<AudioProcessorValueTreeState> state;
     dsp::Compressor<float> compressor;
@@ -70,6 +81,19 @@ private:
     AudioBuffer<float> mDelayBuffer, wetBuffer, drySignal;
     int mWritePosition { 0 };
     int mSampleRate { 44100 };
+
+    using Filter = juce::dsp::IIR::Filter<float>;
+    using Shelf = juce::dsp::ProcessorChain<Filter>;
+    using MonoChain = juce::dsp::ProcessorChain<Filter, Filter, Filter>;
+
+    MonoChain leftChain, rightChain;
+
+    enum ChainPositions {
+        LowShelf,
+        Peak,
+        HighShelf
+    };
+
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessor)

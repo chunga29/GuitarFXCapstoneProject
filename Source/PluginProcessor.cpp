@@ -37,6 +37,10 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->createAndAddParameter("delay time", "Delay Time", "Delay Time", NormalisableRange<float>(0.f, 500.f, 0.0001f), 1.0, nullptr, nullptr);
     state->createAndAddParameter("delay volume", "Delay Volume", "Delay Volume", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
 
+    state->createAndAddParameter("eq low", "EQ Low", "EQ Low", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("eq mid", "EQ Mid", "EQ Mid", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("eq high", "EQ High", "EQ High", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
+
     state->state = ValueTree("attack");
     state->state = ValueTree("release");
     state->state = ValueTree("threshold");
@@ -50,6 +54,10 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->state = ValueTree("delay feedback");
     state->state = ValueTree("delay time");
     state->state = ValueTree("delay volume");
+
+    state->state = ValueTree("eq low");
+    state->state = ValueTree("eq mid");
+    state->state = ValueTree("eq high");
 }
 
 Guitarfxcapstone4AudioProcessor::~Guitarfxcapstone4AudioProcessor()
@@ -138,6 +146,11 @@ void Guitarfxcapstone4AudioProcessor::prepareToPlay (double sampleRate, int samp
 
     drySignal.setSize(1, spec.maximumBlockSize);
     wetBuffer.setSize(1, spec.maximumBlockSize);
+
+    // EQ
+    spec.numChannels = 1;
+    leftChain.prepare(spec);
+    rightChain.prepare(spec);
 }
 
 void Guitarfxcapstone4AudioProcessor::releaseResources()
@@ -197,16 +210,13 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 
     // Noise Gating
 
-    compressor.process(context);
+
+    // Compressor
     compressor.setAttack(attack);
     compressor.setRelease(release);
     compressor.setThreshold(threshold * -1.0);
     compressor.setRatio(25.0f);
-
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
+    compressor.process(context);
 
     float drive = *state->getRawParameterValue("drive");
     float range = *state->getRawParameterValue("range");
@@ -216,6 +226,8 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     float delayFbk = *state->getRawParameterValue("delay feedback");
     float delayTme = *state->getRawParameterValue("delay time");
     float delayVol = *state->getRawParameterValue("delay volume");
+
+    
 
     const int bufferLength = buffer.getNumSamples();
     const int delayBufferLength = mDelayBuffer.getNumSamples();
@@ -241,8 +253,7 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
             channelData++;
         }
 
-        // Delay Code
-
+        // Delay
         drySignal.makeCopyOf(buffer, true);
         const float* bufferData = buffer.getReadPointer(channel);   // dry buffer
         const float* delayBufferData = mDelayBuffer.getReadPointer(channel); // delay buffer
@@ -257,12 +268,34 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 
         // Add Feedback from Wet Buffer to Delay Buffer
         feedbackDelay(channel, bufferLength, delayBufferLength, wetBufferData, delayFbk);
-
-        
     }
 
     mWritePosition += bufferLength;
     mWritePosition %= delayBufferLength;
+
+
+    // EQ (Equalizer)
+    float lowGain = *state->getRawParameterValue("eq low");
+    float midGain = *state->getRawParameterValue("eq mid");
+    float highGain = *state->getRawParameterValue("eq high");
+
+    auto leftBlock = block.getSingleChannelBlock(0);
+    // auto rightBlock = block.getSingleChannelBlock(1);
+
+    dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    // dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+
+    leftChain.process(leftContext);
+    // rightChain.process(rightContext);
+
+    
+    auto midCoefficients = dsp::IIR::Coefficients<float>::makePeakFilter(mSampleRate, 1150.0f, 1.0, midGain);
+    auto lowCoefficients = dsp::IIR::Coefficients<float>::makeLowShelf(mSampleRate, 300.0f, 1.0f, lowGain);
+    auto highCoefficients = dsp::IIR::Coefficients<float>::makeHighShelf(mSampleRate, 2000.0f, 1.0f, highGain);
+    leftChain.get<ChainPositions::Peak>().coefficients = *midCoefficients;
+    leftChain.get<ChainPositions::LowShelf>().coefficients = *lowCoefficients;
+    leftChain.get<ChainPositions::HighShelf>().coefficients = *highCoefficients;
+    // rightChain.get<ChainPositions::Peak>().coefficients = *midCoefficients;
 }
 
 void Guitarfxcapstone4AudioProcessor::fillDelayBuffer(int channel, const int bufferLength, const int delayBufferLength, 
@@ -298,7 +331,7 @@ void Guitarfxcapstone4AudioProcessor::getFromDelayBuffer(AudioBuffer<float>& buf
 }
 
 void Guitarfxcapstone4AudioProcessor::feedbackDelay(int channel, const int bufferLength,
-    const int delayBufferLength, const float* dryBuffer, float fdbk_amt) {
+        const int delayBufferLength, const float* dryBuffer, float fdbk_amt) {
 
     //float fdbk_amt = 0.8;
 
@@ -355,4 +388,9 @@ void Guitarfxcapstone4AudioProcessor::setStateInformation (const void* data, int
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new Guitarfxcapstone4AudioProcessor();
+}
+
+EQChainSettings getEQChainSettings(juce::AudioProcessorValueTreeState& apvts) {
+    EQChainSettings settings;
+    return settings;
 }

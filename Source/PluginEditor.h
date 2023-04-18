@@ -67,5 +67,14 @@ private:
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> delayTimeAttachment;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> delayVolumeAttachment;
 
+    // ----- EQ Knobs ----- //
+    ScopedPointer<Slider> lowKnob;
+    ScopedPointer<Slider> midKnob;
+    ScopedPointer<Slider> highKnob;
+
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> lowAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> midAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> highAttachment;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessorEditor)
 };
