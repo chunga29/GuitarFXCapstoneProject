@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "customLookAndFeel.h"
 
 //==============================================================================
 /**
@@ -29,6 +30,7 @@ public:
     //void sliderValueChanged(Slider* slider);
 
 private:
+    customLookAndFeel customLookAndFeel;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     Guitarfxcapstone4AudioProcessor& audioProcessor;

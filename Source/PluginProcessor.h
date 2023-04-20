@@ -77,6 +77,7 @@ public:
 private:
     ScopedPointer<AudioProcessorValueTreeState> state;
     dsp::Compressor<float> compressor;
+    dsp::NoiseGate<float> noiseGate;
 
     AudioBuffer<float> mDelayBuffer, wetBuffer, drySignal;
     int mWritePosition { 0 };

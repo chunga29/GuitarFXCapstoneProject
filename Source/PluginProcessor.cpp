@@ -23,19 +23,19 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
 #endif
 {
     state = new AudioProcessorValueTreeState(*this, nullptr);
-    state->createAndAddParameter("attack", "Attack", "Attack", NormalisableRange<float>(1.f, 100.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("release", "Release", "Release", NormalisableRange<float>(1.f, 300.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("thresh", "Threshold", "Threshold", NormalisableRange<float>(0.f, 100.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("comp gain", "Comp Gain", "Comp Gain", NormalisableRange<float>(0.f, 10.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("attack", "Attack", "Attack", NormalisableRange<float>(1.f, 200.f, 0.0001f), 10.0, nullptr, nullptr);
+    state->createAndAddParameter("release", "Release", "Release", NormalisableRange<float>(1.f, 500.f, 0.0001f), 100.0, nullptr, nullptr);
+    state->createAndAddParameter("thresh", "Threshold", "Threshold", NormalisableRange<float>(0.f, 50.f, 0.0001f), 0.0, nullptr, nullptr);
+    state->createAndAddParameter("comp gain", "Comp Gain", "Comp Gain", NormalisableRange<float>(0.f, 15.f, 0.0001f), 0.0, nullptr, nullptr);
 
-    state->createAndAddParameter("drive", "Drive", "Drive", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("range", "Range", "Range", NormalisableRange<float>(0.f, 3000.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("blend", "Blend", "Blend", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("volume", "Volume", "Volume", NormalisableRange<float>(0.f, 3.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("drive", "Drive", "Drive", NormalisableRange<float>(0.0001f, 1.f, 0.0001f), 0.0001f, nullptr, nullptr);
+    state->createAndAddParameter("range", "Range", "Range", NormalisableRange<float>(0.0001f, 3000.f, 0.0001f), 0.0001f, nullptr, nullptr);
+    state->createAndAddParameter("blend", "Blend", "Blend", NormalisableRange<float>(0.f, 1.f, 0.0001f), 0.0, nullptr, nullptr);
+    state->createAndAddParameter("volume", "Volume", "Volume", NormalisableRange<float>(0.f, 7.f, 0.0001f), 3.0, nullptr, nullptr);
 
-    state->createAndAddParameter("delay feedback", "Delay Feedback", "Delay Feedback", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("delay time", "Delay Time", "Delay Time", NormalisableRange<float>(0.f, 500.f, 0.0001f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("delay volume", "Delay Volume", "Delay Volume", NormalisableRange<float>(0.f, 1.f, 0.0001f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("delay feedback", "Delay Feedback", "Delay Feedback", NormalisableRange<float>(0.f, 1.f, 0.0001f), 0.0, nullptr, nullptr);
+    state->createAndAddParameter("delay time", "Delay Time", "Delay Time", NormalisableRange<float>(0.05f, 500.f, 0.0001f), 60.0, nullptr, nullptr);
+    state->createAndAddParameter("delay volume", "Delay Volume", "Delay Volume", NormalisableRange<float>(0.f, 1.f, 0.0001f), 0.0, nullptr, nullptr);
 
     state->createAndAddParameter("eq low", "EQ Low", "EQ Low", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
     state->createAndAddParameter("eq mid", "EQ Mid", "EQ Mid", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
@@ -191,43 +191,37 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
     auto block = dsp::AudioBlock<float>(buffer);
     auto context = dsp::ProcessContextReplacing<float>(block);
 
+    // Noise Gating
+
+
+    // Compressor
     float attack = *state->getRawParameterValue("attack");
     float release = *state->getRawParameterValue("release");
     float threshold = *state->getRawParameterValue("thresh");
     float compgain = *state->getRawParameterValue("comp gain");
 
-    // Noise Gating
-
-
-    // Compressor
     compressor.setAttack(attack);
     compressor.setRelease(release);
     compressor.setThreshold(threshold * -1.0);
     compressor.setRatio(25.0f);
     compressor.process(context);
 
+    // Distortion Variables
     float drive = *state->getRawParameterValue("drive");
     float range = *state->getRawParameterValue("range");
     float blend = *state->getRawParameterValue("blend");
     float volume = *state->getRawParameterValue("volume");
 
+    // Delay Variables
     float delayFbk = *state->getRawParameterValue("delay feedback");
     float delayTme = *state->getRawParameterValue("delay time");
     float delayVol = *state->getRawParameterValue("delay volume");
-
-    
 
     const int bufferLength = buffer.getNumSamples();
     const int delayBufferLength = mDelayBuffer.getNumSamples();
@@ -287,7 +281,6 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 
     leftChain.process(leftContext);
     // rightChain.process(rightContext);
-
     
     auto midCoefficients = dsp::IIR::Coefficients<float>::makePeakFilter(mSampleRate, 1150.0f, 1.0, midGain);
     auto lowCoefficients = dsp::IIR::Coefficients<float>::makeLowShelf(mSampleRate, 300.0f, 1.0f, lowGain);
@@ -300,7 +293,6 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 
 void Guitarfxcapstone4AudioProcessor::fillDelayBuffer(int channel, const int bufferLength, const int delayBufferLength, 
                                                         const float* bufferData, const float* delayBufferData, const float gain) {
-    //const float gain = 0.3;
 
     if (delayBufferLength >= bufferLength + mWritePosition) {
         mDelayBuffer.copyFromWithRamp(channel, mWritePosition, bufferData, bufferLength, gain, gain);
@@ -314,8 +306,7 @@ void Guitarfxcapstone4AudioProcessor::fillDelayBuffer(int channel, const int buf
 
 void Guitarfxcapstone4AudioProcessor::getFromDelayBuffer(AudioBuffer<float>& buffer, int channel, const int bufferLength,
     const int delayBufferLength, const float* bufferData, const float* delayBufferData, const float* wetBufferData, int delayTime) {
-    //int delayTime = 200;
-    // Different Delays for each channel
+
     const int readPosition = static_cast<int>(delayBufferLength + mWritePosition - (mSampleRate * delayTime / 1000)) % delayBufferLength;
 
     if (delayBufferLength >= bufferLength + readPosition) {
@@ -332,8 +323,6 @@ void Guitarfxcapstone4AudioProcessor::getFromDelayBuffer(AudioBuffer<float>& buf
 
 void Guitarfxcapstone4AudioProcessor::feedbackDelay(int channel, const int bufferLength,
         const int delayBufferLength, const float* dryBuffer, float fdbk_amt) {
-
-    //float fdbk_amt = 0.8;
 
     if (delayBufferLength > bufferLength + mWritePosition) {
         mDelayBuffer.addFromWithRamp(channel, mWritePosition, dryBuffer, bufferLength, fdbk_amt, fdbk_amt);
