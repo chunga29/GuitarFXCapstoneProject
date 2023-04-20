@@ -10,9 +10,14 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor (Guitarfxcapstone4AudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Guitarfxcapstone4AudioProcessor& p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+    verticalGradientMeterInput([&]() {return audioProcessor.getRmsValue(0); }),
+    verticalGradientMeterOutput([&]() {return audioProcessor.getRmsValue(1); })
 {
+    addAndMakeVisible(verticalGradientMeterInput);
+    addAndMakeVisible(verticalGradientMeterOutput);
+
     // Compression
     addAndMakeVisible(attackKnob = new Slider("Attack"));
     attackKnob->setSliderStyle(Slider::Rotary);
@@ -120,6 +125,7 @@ Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor (Gu
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize(800, 700);
+    startTimerHz(24);
 }
 
 Guitarfxcapstone4AudioProcessorEditor::~Guitarfxcapstone4AudioProcessorEditor()
@@ -163,6 +169,9 @@ void Guitarfxcapstone4AudioProcessorEditor::resized()
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
 
+    verticalGradientMeterInput.setBounds(getWidth() - 250, getHeight() - 250, 15, 200);
+    verticalGradientMeterOutput.setBounds(getWidth() - 230, getHeight() - 250, 15, 200);
+
     attackKnob->setBounds(((getWidth() / 7) * 2) - (100 / 2), (getHeight() / 6) - (100 / 2), 100, 100);
     releaseKnob->setBounds(((getWidth() / 7) * 3) - (100 / 2), (getHeight() / 6) - (100 / 2), 100, 100);
     threshKnob->setBounds(((getWidth() / 7) * 4) - (100 / 2), (getHeight() / 6) - (100 / 2), 100, 100);
@@ -181,6 +190,11 @@ void Guitarfxcapstone4AudioProcessorEditor::resized()
     lowKnob->setBounds(((getWidth() / 7) * 2) - (100 / 2), 4 * (getHeight() / 6) - (100 / 2), 100, 100);
     midKnob->setBounds(((getWidth() / 7) * 3) - (100 / 2), 4 * (getHeight() / 6) - (100 / 2), 100, 100);
     highKnob->setBounds(((getWidth() / 7) * 4) - (100 / 2), 4 * (getHeight() / 6) - (100 / 2), 100, 100);
+}
+
+void Guitarfxcapstone4AudioProcessorEditor::timerCallback() {
+    verticalGradientMeterInput.repaint();
+    verticalGradientMeterOutput.repaint();
 }
 
 //void Guitarfxcapstone4AudioProcessorEditor::sliderValueChanged(Slider* slider) 

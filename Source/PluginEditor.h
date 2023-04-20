@@ -11,11 +11,12 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include "customLookAndFeel.h"
+#include "VerticalGradientMeter.h"
 
 //==============================================================================
 /**
 */
-class Guitarfxcapstone4AudioProcessorEditor  : public juce::AudioProcessorEditor
+class Guitarfxcapstone4AudioProcessorEditor  : public juce::AudioProcessorEditor, public Timer
                                                //public juce::Slider::Listener,
                                                //public juce::ComboBox::Listener
 {
@@ -26,11 +27,13 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    void timerCallback() override;
 
     //void sliderValueChanged(Slider* slider);
 
 private:
     customLookAndFeel customLookAndFeel;
+    Gui::VerticalGradientMeter verticalGradientMeterInput, verticalGradientMeterOutput;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     Guitarfxcapstone4AudioProcessor& audioProcessor;

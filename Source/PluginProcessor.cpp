@@ -188,6 +188,9 @@ bool Guitarfxcapstone4AudioProcessor::isBusesLayoutSupported (const BusesLayout&
 void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    rmsLevelLeft = Decibels::gainToDecibels(buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
+
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
@@ -289,6 +292,8 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     leftChain.get<ChainPositions::LowShelf>().coefficients = *lowCoefficients;
     leftChain.get<ChainPositions::HighShelf>().coefficients = *highCoefficients;
     // rightChain.get<ChainPositions::Peak>().coefficients = *midCoefficients;
+
+    rmsLevelRight = Decibels::gainToDecibels(buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
 }
 
 void Guitarfxcapstone4AudioProcessor::fillDelayBuffer(int channel, const int bufferLength, const int delayBufferLength, 
@@ -369,6 +374,19 @@ void Guitarfxcapstone4AudioProcessor::setStateInformation (const void* data, int
 
     if (tree.isValid()) {
         state->state = tree;
+    }
+}
+
+float Guitarfxcapstone4AudioProcessor::getRmsValue(const int channel) const {
+    jassert(channel == 0 || channel == 1);
+    if (channel == 0) {
+        return rmsLevelLeft;
+    }
+    else if (channel == 1) {
+        return rmsLevelRight;
+    }
+    else {
+        return 0.f;
     }
 }
 

@@ -62,6 +62,8 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    float getRmsValue(const int channel) const;
+
     AudioProcessorValueTreeState& getState();
     void fillDelayBuffer(int channel, const int bufferLength, const int delayBufferLength,
         const float* bufferData, const float* delayBufferData, const float gain);
@@ -95,6 +97,7 @@ private:
         HighShelf
     };
 
+    float rmsLevelLeft, rmsLevelRight;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessor)
