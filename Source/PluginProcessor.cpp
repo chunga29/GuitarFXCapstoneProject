@@ -26,20 +26,26 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->createAndAddParameter("attack", "Attack", "Attack", NormalisableRange<float>(1.f, 200.f, 0.0001f), 10.0, nullptr, nullptr);
     state->createAndAddParameter("release", "Release", "Release", NormalisableRange<float>(1.f, 500.f, 0.0001f), 100.0, nullptr, nullptr);
     state->createAndAddParameter("thresh", "Threshold", "Threshold", NormalisableRange<float>(0.f, 50.f, 0.0001f), 0.0, nullptr, nullptr);
+    state->createAndAddParameter("ratio", "Ratio", "Ratio", NormalisableRange<float>(1.f, 10.f, 1.f), 2.0, nullptr, nullptr);
     state->createAndAddParameter("comp gain", "Comp Gain", "Comp Gain", NormalisableRange<float>(0.f, 15.f, 0.0001f), 0.0, nullptr, nullptr);
 
     state->createAndAddParameter("drive", "Drive", "Drive", NormalisableRange<float>(0.0001f, 1.f, 0.0001f), 0.0001f, nullptr, nullptr);
-    state->createAndAddParameter("range", "Range", "Range", NormalisableRange<float>(0.0001f, 3000.f, 0.0001f), 0.0001f, nullptr, nullptr);
+    state->createAndAddParameter("range", "Range", "Range", NormalisableRange<float>(0.0001f, 1000.f, 0.0001f), 0.0001f, nullptr, nullptr);
     state->createAndAddParameter("blend", "Blend", "Blend", NormalisableRange<float>(0.f, 1.f, 0.0001f), 0.0, nullptr, nullptr);
-    state->createAndAddParameter("volume", "Volume", "Volume", NormalisableRange<float>(0.f, 7.f, 0.0001f), 3.0, nullptr, nullptr);
+    state->createAndAddParameter("volume", "Volume", "Volume", NormalisableRange<float>(0.05f, 2.f, 0.0001f), 1.0, nullptr, nullptr);
 
     state->createAndAddParameter("delay feedback", "Delay Feedback", "Delay Feedback", NormalisableRange<float>(0.f, 1.f, 0.0001f), 0.0, nullptr, nullptr);
     state->createAndAddParameter("delay time", "Delay Time", "Delay Time", NormalisableRange<float>(0.05f, 500.f, 0.0001f), 60.0, nullptr, nullptr);
     state->createAndAddParameter("delay volume", "Delay Volume", "Delay Volume", NormalisableRange<float>(0.f, 1.f, 0.0001f), 0.0, nullptr, nullptr);
 
-    state->createAndAddParameter("eq low", "EQ Low", "EQ Low", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("eq mid", "EQ Mid", "EQ Mid", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
-    state->createAndAddParameter("eq high", "EQ High", "EQ High", NormalisableRange<float>(0.05f, 4.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("eq low", "EQ Low", "EQ Low", NormalisableRange<float>(0.1f, 3.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("eq mid", "EQ Mid", "EQ Mid", NormalisableRange<float>(0.1f, 3.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("eq high", "EQ High", "EQ High", NormalisableRange<float>(0.1f, 3.f, 0.1f, 1.0f), 1.0, nullptr, nullptr);
+
+    state->createAndAddParameter("bypass comp", "Bypass Comp", "Bypass Comp", NormalisableRange<float>(0.f, 1.f, 1.f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("bypass dist", "Bypass Dist", "Bypass Dist", NormalisableRange<float>(0.f, 1.f, 1.f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("bypass delay", "Bypass Delay", "Bypass Delay", NormalisableRange<float>(0.f, 1.f, 1.f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("bypass eq", "Bypass EQ", "Bypass EQ", NormalisableRange<float>(0.f, 1.f, 1.f), 1.0, nullptr, nullptr);
 
     state->state = ValueTree("attack");
     state->state = ValueTree("release");
@@ -58,6 +64,13 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->state = ValueTree("eq low");
     state->state = ValueTree("eq mid");
     state->state = ValueTree("eq high");
+
+    state->state = ValueTree("bypass comp");
+    state->state = ValueTree("bypass dist");
+    state->state = ValueTree("bypass delay");
+    state->state = ValueTree("bypass eq");
+
+
 }
 
 Guitarfxcapstone4AudioProcessor::~Guitarfxcapstone4AudioProcessor()
@@ -136,6 +149,7 @@ void Guitarfxcapstone4AudioProcessor::prepareToPlay (double sampleRate, int samp
 
     if (getTotalNumOutputChannels() > 0) {
         compressor.prepare(spec);
+        noiseGate.prepare(spec);
     }
 
     const int numInputChannels = getNumInputChannels();
@@ -201,19 +215,32 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
     auto context = dsp::ProcessContextReplacing<float>(block);
 
     // Noise Gating
-
+    /*
+    noiseGate.setAttack(10.f);
+    noiseGate.setRelease(100.f);
+    noiseGate.setThreshold(5.f);
+    noiseGate.setRatio(2.f);
+    noiseGate.process(context);*/
 
     // Compressor
+
     float attack = *state->getRawParameterValue("attack");
     float release = *state->getRawParameterValue("release");
     float threshold = *state->getRawParameterValue("thresh");
+    float ratio = *state->getRawParameterValue("ratio");
     float compgain = *state->getRawParameterValue("comp gain");
 
-    compressor.setAttack(attack);
-    compressor.setRelease(release);
-    compressor.setThreshold(threshold * -1.0);
-    compressor.setRatio(25.0f);
-    compressor.process(context);
+    auto compby = state->getRawParameterValue("bypass comp");
+    if ((bool)compby->load()) {
+        compressor.setAttack(attack);
+        compressor.setRelease(release);
+        compressor.setThreshold(threshold * -1.0);
+        compressor.setRatio(ratio);
+        compressor.process(context);
+
+        makeupGain.setGainDecibels(compgain);
+        makeupGain.process(context);
+    }
 
     // Distortion Variables
     float drive = *state->getRawParameterValue("drive");
@@ -234,64 +261,74 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
         // buffer carries all of the audio samples
         auto* channelData = buffer.getWritePointer (channel);
 
-        // Distortion
-        for (int sample = 0; sample < buffer.getNumSamples(); sample++) {
-            // Pre-Distortion Signal
-            float cleanSig = *channelData;
+        auto distby = state->getRawParameterValue("bypass dist");
+        if ((bool)distby->load()) {
+            // Distortion
+            for (int sample = 0; sample < buffer.getNumSamples(); sample++) {
+                // Pre-Distortion Signal
+                float cleanSig = *channelData;
 
-            // Range is a drive multiplier
-            *channelData *= drive * range;
+                // Range is a drive multiplier
+                *channelData *= drive * range;
 
-            // Distortion Formula: (2.f / float_Pi) * atan(*channelData)
-            // (Filtering) (Wah Pedal)
-            // Signal Forumla: (B% * Distorted + (1 - B)% * Clean) * V
-            *channelData = ((((2.f / float_Pi) * atan(*channelData)) * blend) + (cleanSig * (1.f - blend))) * volume;
+                // Distortion Formula: (2.f / float_Pi) * atan(*channelData)
+                // (Filtering) (Wah Pedal)
+                // Signal Forumla: (B% * Distorted + (1 - B)% * Clean) * V
+                *channelData = ((((2.f / float_Pi) * atan(*channelData)) * blend) + (cleanSig * (1.f - blend))) * volume;
 
-            channelData++;
+                channelData++;
+            }
         }
 
-        // Delay
-        drySignal.makeCopyOf(buffer, true);
-        const float* bufferData = buffer.getReadPointer(channel);   // dry buffer
-        const float* delayBufferData = mDelayBuffer.getReadPointer(channel); // delay buffer
-        const float* wetBufferData = wetBuffer.getReadPointer(channel);
-        float* dryBuffer = buffer.getWritePointer(channel);
+        auto delayby = state->getRawParameterValue("bypass delay");
+        if ((bool)delayby->load()) {
+            // Delay
+            drySignal.makeCopyOf(buffer, true);
+            const float* bufferData = buffer.getReadPointer(channel);   // dry buffer
+            const float* delayBufferData = mDelayBuffer.getReadPointer(channel); // delay buffer
+            const float* wetBufferData = wetBuffer.getReadPointer(channel);
+            float* dryBuffer = buffer.getWritePointer(channel);
 
-        // Write Dry Buffer into Delay Buffer
-        fillDelayBuffer(channel, bufferLength, delayBufferLength, bufferData, delayBufferData, delayVol);
+            // Write Dry Buffer into Delay Buffer
+            fillDelayBuffer(channel, bufferLength, delayBufferLength, bufferData, delayBufferData, delayVol);
 
-        // Write Delay Buffer into Wet Buffer
-        getFromDelayBuffer(buffer, channel, bufferLength, delayBufferLength, bufferData, delayBufferData, wetBufferData, delayTme);
+            // Write Delay Buffer into Wet Buffer
+            getFromDelayBuffer(buffer, channel, bufferLength, delayBufferLength, bufferData, delayBufferData, wetBufferData, delayTme);
 
-        // Add Feedback from Wet Buffer to Delay Buffer
-        feedbackDelay(channel, bufferLength, delayBufferLength, wetBufferData, delayFbk);
+            // Add Feedback from Wet Buffer to Delay Buffer
+            feedbackDelay(channel, bufferLength, delayBufferLength, wetBufferData, delayFbk);
+        }
     }
 
     mWritePosition += bufferLength;
     mWritePosition %= delayBufferLength;
 
 
-    // EQ (Equalizer)
-    float lowGain = *state->getRawParameterValue("eq low");
-    float midGain = *state->getRawParameterValue("eq mid");
-    float highGain = *state->getRawParameterValue("eq high");
+    auto eqby = state->getRawParameterValue("bypass eq");
+    if ((bool)eqby->load()) {
 
-    auto leftBlock = block.getSingleChannelBlock(0);
-    // auto rightBlock = block.getSingleChannelBlock(1);
+        // EQ (Equalizer)
+        float lowGain = *state->getRawParameterValue("eq low");
+        float midGain = *state->getRawParameterValue("eq mid");
+        float highGain = *state->getRawParameterValue("eq high");
 
-    dsp::ProcessContextReplacing<float> leftContext(leftBlock);
-    // dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+        auto leftBlock = block.getSingleChannelBlock(0);
+        // auto rightBlock = block.getSingleChannelBlock(1);
 
-    leftChain.process(leftContext);
-    // rightChain.process(rightContext);
-    
-    auto midCoefficients = dsp::IIR::Coefficients<float>::makePeakFilter(mSampleRate, 1150.0f, 1.0, midGain);
-    auto lowCoefficients = dsp::IIR::Coefficients<float>::makeLowShelf(mSampleRate, 300.0f, 1.0f, lowGain);
-    auto highCoefficients = dsp::IIR::Coefficients<float>::makeHighShelf(mSampleRate, 2000.0f, 1.0f, highGain);
-    leftChain.get<ChainPositions::Peak>().coefficients = *midCoefficients;
-    leftChain.get<ChainPositions::LowShelf>().coefficients = *lowCoefficients;
-    leftChain.get<ChainPositions::HighShelf>().coefficients = *highCoefficients;
-    // rightChain.get<ChainPositions::Peak>().coefficients = *midCoefficients;
+        dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+        // dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+
+        leftChain.process(leftContext);
+        // rightChain.process(rightContext);
+
+        auto midCoefficients = dsp::IIR::Coefficients<float>::makePeakFilter(mSampleRate, 1150.0f, 1.0, midGain);
+        auto lowCoefficients = dsp::IIR::Coefficients<float>::makeLowShelf(mSampleRate, 300.0f, 1.0f, lowGain);
+        auto highCoefficients = dsp::IIR::Coefficients<float>::makeHighShelf(mSampleRate, 2000.0f, 1.0f, highGain);
+        leftChain.get<ChainPositions::Peak>().coefficients = *midCoefficients;
+        leftChain.get<ChainPositions::LowShelf>().coefficients = *lowCoefficients;
+        leftChain.get<ChainPositions::HighShelf>().coefficients = *highCoefficients;
+        // rightChain.get<ChainPositions::Peak>().coefficients = *midCoefficients;
+    }
 
     rmsLevelRight = Decibels::gainToDecibels(buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
 }

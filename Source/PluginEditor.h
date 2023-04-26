@@ -34,22 +34,32 @@ public:
 private:
     customLookAndFeel customLookAndFeel;
     Gui::VerticalGradientMeter verticalGradientMeterInput, verticalGradientMeterOutput;
+
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     Guitarfxcapstone4AudioProcessor& audioProcessor;
+
+    ScopedPointer<Button> bypassComp;
+    ScopedPointer<Button> bypassDist;
+    ScopedPointer<Button> bypassDelay;
+    ScopedPointer<Button> bypassEQ;
+
+    ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassCompAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassDistAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassDelayAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassEQAttachment;
 
     // ----- Compressor Knobs ----- //
     ScopedPointer<Slider> attackKnob;
     ScopedPointer<Slider> releaseKnob;
     ScopedPointer<Slider> threshKnob;
-    ScopedPointer<ComboBox> ratioMenu;
+    ScopedPointer<Slider> ratioKnob;
     ScopedPointer<Slider> compGainKnob;
-    // ScopedPointer<Slider> bypass;
 
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> attackAttachment;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> releaseAttachment;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> threshAttachment;
-    ScopedPointer<AudioProcessorValueTreeState::ComboBoxAttachment> ratioAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> ratioAttachment;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> compGainAttachment;
 
     // ----- Distortion Knobs ----- //
