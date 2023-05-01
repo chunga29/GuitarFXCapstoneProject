@@ -33,20 +33,25 @@ public:
 
 private:
     customLookAndFeel customLookAndFeel;
+
     Gui::VerticalGradientMeter verticalGradientMeterInput, verticalGradientMeterOutput;
 
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     Guitarfxcapstone4AudioProcessor& audioProcessor;
 
+    ScopedPointer<Button> bypassAll;
     ScopedPointer<Button> bypassComp;
     ScopedPointer<Button> bypassDist;
     ScopedPointer<Button> bypassDelay;
+    ScopedPointer<Button> bypassReverb;
     ScopedPointer<Button> bypassEQ;
 
+    ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassAllAttachment;
     ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassCompAttachment;
     ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassDistAttachment;
     ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassDelayAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassReverbAttachment;
     ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassEQAttachment;
 
     // ----- Compressor Knobs ----- //
@@ -82,6 +87,15 @@ private:
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> delayTimeAttachment;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> delayVolumeAttachment;
 
+    // ----- Reverb Knobs ----- //
+    ScopedPointer<Slider> reverbSizeKnob;
+    ScopedPointer<Slider> reverbDecayKnob;
+    ScopedPointer<Slider> reverbMixKnob;
+
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> reverbSizeAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> reverbDecayAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> reverbMixAttachment;
+
     // ----- EQ Knobs ----- //
     ScopedPointer<Slider> lowKnob;
     ScopedPointer<Slider> midKnob;
@@ -90,6 +104,10 @@ private:
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> lowAttachment;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> midAttachment;
     ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> highAttachment;
+
+    // ----- Cabinet ----- //
+    ScopedPointer<ComboBox> cabinetMenu;
+    ScopedPointer<AudioProcessorValueTreeState::ComboBoxAttachment> cabinetMenuAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessorEditor)
 };

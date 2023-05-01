@@ -12,6 +12,9 @@ customLookAndFeel::customLookAndFeel() {
     File knobImgFile = File::getSpecialLocation
     (File::SpecialLocationType::userDesktopDirectory).getChildFile("knob3.png");
     img = ImageCache::getFromFile(knobImgFile);
+
+    Typeface::Ptr tface = Typeface::createSystemTypefaceFor(BinaryData::HelveticaBold_ttf, BinaryData::HelveticaBold_ttfSize);
+    setDefaultSansSerifTypeface(tface);
 }
 
 void customLookAndFeel::drawRotarySlider(Graphics& g,
@@ -54,3 +57,10 @@ void customLookAndFeel::drawRotarySlider(Graphics& g,
             Justification::horizontallyCentred | Justification::centred, 1);
     }
 }
+
+Typeface::Ptr customLookAndFeel::getTypefaceForFont(const Font& f) {
+    static Typeface::Ptr myFont = Typeface::createSystemTypefaceFor(BinaryData::HelveticaBold_ttf,
+        BinaryData::HelveticaBold_ttfSize);
+    return myFont;
+}
+

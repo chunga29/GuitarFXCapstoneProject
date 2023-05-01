@@ -82,6 +82,14 @@ private:
     dsp::NoiseGate<float> noiseGate;
     dsp::Gain<float> makeupGain;
 
+    dsp::Convolution reverbConvolution;
+
+    // Cabinets
+    dsp::Convolution marshallConvolution;
+    dsp::Convolution fenderConvolution;
+    dsp::Gain<float> cabinetGain;
+    
+
     AudioBuffer<float> mDelayBuffer, wetBuffer, drySignal;
     int mWritePosition { 0 };
     int mSampleRate { 44100 };
@@ -99,6 +107,30 @@ private:
     };
 
     float rmsLevelLeft, rmsLevelRight;
+
+    // REVERB
+    juce::dsp::DelayLine <float> ap1{ 400000 };
+    juce::dsp::DelayLine <float> ap2{ 400000 };
+    juce::dsp::DelayLine <float> ap3{ 400000 };
+
+    juce::dsp::DelayLine <float> comb1{ 400000 };
+    juce::dsp::DelayLine <float> comb2{ 400000 };
+    juce::dsp::DelayLine <float> comb3{ 400000 };
+    juce::dsp::DelayLine <float> comb4{ 400000 };
+
+
+    float output1 = 0;
+    float output2 = 0;
+    float output3 = 0;
+    float output4 = 0;
+    float output5 = 0;
+    float output6 = 0;
+    float output7 = 0;
+
+    float feedBack;
+    float feedForward;
+
+    juce::dsp::DryWetMixer <float> mixer;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessor)

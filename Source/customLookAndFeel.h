@@ -17,6 +17,8 @@ public:
 	void drawRotarySlider(Graphics& g, int x, int y, int width, int height, float sliderPos,
 		float rotaryStartAngle, float rotaryEndAngle, Slider& slider) override;
 
+	Typeface::Ptr getTypefaceForFont(const Font& f) override;
+
 private:
 	Image img;
 };	
