@@ -9,8 +9,9 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-#define WIDTH_DIV 10
-#define HEIGHT_DIV 7
+#define WIDTH_DIV 8
+#define HEIGHT_DIV 6
+#define B_UP 5
 
 //==============================================================================
 Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Guitarfxcapstone4AudioProcessor& p)
@@ -19,12 +20,23 @@ Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Gui
     verticalGradientMeterOutput([&]() {return audioProcessor.getRmsValue(1); })
 {
     addAndMakeVisible(bypassAll = new TextButton("Bypass All"));
-    bypassAll->setButtonText("POWER ON");
+    bypassAll->setButtonText("POWER");
     bypassAll->setClickingTogglesState(true);
-    bypassAll->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::red);
+    bypassAll->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::indianred);
     bypassAll->setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::dimgrey);
     bypassAllAttachment = new AudioProcessorValueTreeState::ButtonAttachment(p.getState(), "bypass all", *bypassAll);
 
+    addAndMakeVisible(inputKnob = new Slider("Input"));
+    inputKnob->setSliderStyle(Slider::Rotary);
+    inputKnob->setTextBoxStyle(Slider::NoTextBox, false, 50, 15);
+    inputKnob->setLookAndFeel(&customLookAndFeel);
+    inputAttachment = new AudioProcessorValueTreeState::SliderAttachment(p.getState(), "input gain", *inputKnob);
+
+    addAndMakeVisible(outputKnob = new Slider("Output"));
+    outputKnob->setSliderStyle(Slider::Rotary);
+    outputKnob->setTextBoxStyle(Slider::NoTextBox, false, 50, 15);
+    outputKnob->setLookAndFeel(&customLookAndFeel);
+    outputAttachment = new AudioProcessorValueTreeState::SliderAttachment(p.getState(), "output gain", *outputKnob);
 
     Font helvetica = customLookAndFeel.getTypefaceForFont(Font());
     // helvetica.setBold(true);
@@ -66,9 +78,11 @@ Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Gui
     compGainAttachment = new AudioProcessorValueTreeState::SliderAttachment(p.getState(), "comp gain", *compGainKnob);
 
     addAndMakeVisible(bypassComp = new TextButton("Bypass Comp"));
-    bypassComp->setButtonText("Compressor");
+    bypassComp->setButtonText("COMPRESSOR");
     bypassComp->setClickingTogglesState(true);
-    bypassComp->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::darkslateblue);
+    bypassComp->setColour(juce::TextButton::ColourIds::textColourOnId, Colours::darkslategrey);
+    bypassComp->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::whitesmoke);
+    // dark slate blue
     bypassComp->setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::dimgrey);
     bypassCompAttachment = new AudioProcessorValueTreeState::ButtonAttachment(p.getState(), "bypass comp", *bypassComp);
 
@@ -100,9 +114,10 @@ Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Gui
     volumeAttachment = new AudioProcessorValueTreeState::SliderAttachment(p.getState(), "volume", *volumeKnob);
 
     addAndMakeVisible(bypassDist = new TextButton("Bypass Dist"));
-    bypassDist->setButtonText("Distortion");
+    bypassDist->setButtonText("DISTORTION");
     bypassDist->setClickingTogglesState(true);
-    bypassDist->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::orange);
+    bypassDist->setColour(juce::TextButton::ColourIds::textColourOnId, Colours::darkslategrey);
+    bypassDist->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::whitesmoke);
     bypassDist->setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::dimgrey);
     bypassDistAttachment = new AudioProcessorValueTreeState::ButtonAttachment(p.getState(), "bypass dist", *bypassDist);
 
@@ -128,9 +143,10 @@ Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Gui
     delayVolumeAttachment = new AudioProcessorValueTreeState::SliderAttachment(p.getState(), "delay volume", *delayVolumeKnob);
 
     addAndMakeVisible(bypassDelay = new TextButton("Bypass Delay"));
-    bypassDelay->setButtonText("Delay");
+    bypassDelay->setButtonText("DELAY");
     bypassDelay->setClickingTogglesState(true);
-    bypassDelay->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::darkred);
+    bypassDelay->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::whitesmoke);
+    bypassDelay->setColour(juce::TextButton::ColourIds::textColourOnId, Colours::darkslategrey);
     bypassDelay->setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::dimgrey);
     bypassDelayAttachment = new AudioProcessorValueTreeState::ButtonAttachment(p.getState(), "bypass delay", *bypassDelay);
 
@@ -155,9 +171,10 @@ Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Gui
     reverbMixAttachment = new AudioProcessorValueTreeState::SliderAttachment(p.getState(), "reverb mix", *reverbMixKnob);
 
     addAndMakeVisible(bypassReverb = new TextButton("Bypass Reverb"));
-    bypassReverb->setButtonText("Reverb");
+    bypassReverb->setButtonText("REVERB");
     bypassReverb->setClickingTogglesState(true);
-    bypassReverb->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::darkgrey);
+    bypassReverb->setColour(juce::TextButton::ColourIds::textColourOnId, Colours::darkslategrey);
+    bypassReverb->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::whitesmoke);
     bypassReverb->setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::dimgrey);
     bypassReverbAttachment = new AudioProcessorValueTreeState::ButtonAttachment(p.getState(), "bypass reverb", *bypassReverb);
 
@@ -184,20 +201,24 @@ Guitarfxcapstone4AudioProcessorEditor::Guitarfxcapstone4AudioProcessorEditor(Gui
 
     addAndMakeVisible(bypassEQ = new TextButton("Bypass EQ"));
     bypassEQ->setButtonText("EQ");
-    bypassEQ->setColour(juce::TextButton::ColourIds::textColourOnId, Colours::black);
+    bypassEQ->setColour(juce::TextButton::ColourIds::textColourOnId, Colours::darkslategrey);
     bypassEQ->setClickingTogglesState(true);
-    bypassEQ->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::bisque);
+    bypassEQ->setColour(juce::TextButton::ColourIds::buttonOnColourId, juce::Colours::whitesmoke);
     bypassEQ->setColour(juce::TextButton::ColourIds::textColourOffId, juce::Colours::dimgrey);
     bypassEQAttachment = new AudioProcessorValueTreeState::ButtonAttachment(p.getState(), "bypass eq", *bypassEQ);
 
 
     // Cabinets
     addAndMakeVisible(cabinetMenu = new ComboBox("Cabinets"));
-    cabinetMenu->addItem("None", 1);
-    cabinetMenu->addItem("Marshall 1960VB", 2);
-    cabinetMenu->addItem("Twin Fender Reverb", 3);
-    cabinetMenu->setColour(0x1000b00, Colours::darkolivegreen);
-    cabinetMenu->setColour(0x1000c00, Colours::darkolivegreen);
+    cabinetMenu->addItem("NONE", 1);
+    cabinetMenu->addItem("MARSHALL 1960VB", 2);
+    cabinetMenu->addItem("TWIN FENDER REVERB", 3);
+    cabinetMenu->addItem("RANDALL RT412", 4);
+    cabinetMenu->addItem("KOCH MT184S", 5);
+    cabinetMenu->setColour(0x1000b00, Colours::floralwhite);
+    cabinetMenu->setColour(0x1000c00, Colours::darkslategrey);
+    cabinetMenu->setColour(0x1000e00, Colours::darkslategrey);
+    cabinetMenu->setColour(0x1000a00, Colours::darkslategrey);
     cabinetMenuAttachment = new AudioProcessorValueTreeState::ComboBoxAttachment(p.getState(), "cabinet menu", *cabinetMenu);
 
 
@@ -215,80 +236,93 @@ Guitarfxcapstone4AudioProcessorEditor::~Guitarfxcapstone4AudioProcessorEditor()
 //==============================================================================
 void Guitarfxcapstone4AudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    // g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-    g.fillAll(juce::Colours::beige);
-    g.setColour (juce::Colours::black);
+    g.fillAll(juce::Colours::whitesmoke);
+    g.setColour (juce::Colours::darkslategrey);
     Font helvetica = customLookAndFeel.getTypefaceForFont(Font());
-    // helvetica.setBold(true);
+    helvetica.setBold(true);
     g.setFont(helvetica);
-
     g.setFont (15.0f);
 
     //g.drawText("Compressor", ((getWidth() / WIDTH_DIV) * 1) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100, Justification::centred, false);
-    g.drawText("Attack", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Release", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Threshold", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Gain", ((getWidth() / WIDTH_DIV) * 5) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Ratio", ((getWidth() / WIDTH_DIV) * 6) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("ATTACK", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("RELEASE", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("THRESHOLD", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("GAIN", ((getWidth() / WIDTH_DIV) * 6) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("RATIO", ((getWidth() / WIDTH_DIV) * 5) - (100 / 2), (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false); 
+    g.drawRoundedRectangle(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 20, (getHeight() / HEIGHT_DIV) - 60, (getWidth() / WIDTH_DIV) * 6 + 20, 100, 10, 2);
+    // g.fillRoundedRectangle(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 20, (getHeight() / HEIGHT_DIV) - 60, (getWidth() / WIDTH_DIV) * 6 + 20, 100, 10);
 
     // g.drawText("Distortion", ((getWidth() / WIDTH_DIV) * 1) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100, Justification::centred, false);
-    g.drawText("Drive", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Range", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Blend", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Volume", ((getWidth() / WIDTH_DIV) * 5) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("DRIVE", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("RANGE", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("BLEND", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("VOLUME", ((getWidth() / WIDTH_DIV) * 5) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawRoundedRectangle(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 20, 2 * (getHeight() / HEIGHT_DIV) - 60, (getWidth() / WIDTH_DIV) * 6 + 20, 100, 10, 2);
 
     // g.drawText("Delay", ((getWidth() / WIDTH_DIV) * 1) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100, Justification::centred, false);
-    g.drawText("Feedback", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Time", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Volume", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("FEEDBACK", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("TIME", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("MIX", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawRoundedRectangle(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 20, 3 * (getHeight() / HEIGHT_DIV) - 60, (getWidth() / WIDTH_DIV) * 6 + 20, 100, 10, 2);
 
-    g.drawText("Size", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Decay", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Mix", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    // REVERB
+    g.drawText("SIZE", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("DECAY", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("DRY / WET", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawRoundedRectangle(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 20, 4 * (getHeight() / HEIGHT_DIV) - 60, (getWidth() / WIDTH_DIV) * 6 + 20, 100, 10, 2);
+
 
     // g.drawText("EQ", ((getWidth() / WIDTH_DIV) * 1) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100, Justification::centred, false);
-    g.drawText("Low", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("Mid", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
-    g.drawText("High", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("LOW", ((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("MID", ((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("HIGH", ((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawRoundedRectangle(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 20, 5 * (getHeight() / HEIGHT_DIV) - 60, (getWidth() / WIDTH_DIV) * 6 + 20, 100, 10, 2);
+
+
+    g.drawText("INPUT", getWidth() - 120, 2 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawText("OUTPUT", getWidth() - 120, 3 * (getHeight() / HEIGHT_DIV) - 95, 100, 100, Justification::centred, false);
+    g.drawRoundedRectangle(getWidth() - 120, 2 * (getHeight() / HEIGHT_DIV) - 60, 100, (getHeight() / HEIGHT_DIV) + 100, 10, 2);
 }
 
 void Guitarfxcapstone4AudioProcessorEditor::resized()
 {
-    bypassAll->setBounds(getWidth() - 120, 20, 100, 30);
+    bypassAll->setBounds(getWidth() - 120, (getHeight() / HEIGHT_DIV) - 60, 100, 100);
 
-    verticalGradientMeterInput.setBounds(getWidth() - 100, getHeight() - 250, 15, 200);
-    verticalGradientMeterOutput.setBounds(getWidth() - 80, getHeight() - 250, 15, 200);
+    inputKnob->setBounds(getWidth() - 120, 2 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    outputKnob->setBounds(getWidth() - 120, 3 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
 
-    bypassComp->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, (getHeight() / HEIGHT_DIV) - 25, 100, 30);
-    attackKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    releaseKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    threshKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    compGainKnob->setBounds(((getWidth() / WIDTH_DIV) * 5) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    ratioKnob->setBounds(((getWidth() / WIDTH_DIV) * 6) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
+    verticalGradientMeterInput.setBounds(getWidth() - 88, 5 * (getHeight() / HEIGHT_DIV) - 160, 15, 200);
+    verticalGradientMeterOutput.setBounds(getWidth() - 68, 5 * (getHeight() / HEIGHT_DIV) - 160, 15, 200);
 
-    bypassDist->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 2 * (getHeight() / HEIGHT_DIV) - 25, 100, 30);
-    driveKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    rangeKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    blendKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    volumeKnob->setBounds(((getWidth() / WIDTH_DIV) * 5) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
+    bypassComp->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, (getHeight() / HEIGHT_DIV) - 25, 105, 30);
+    attackKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    releaseKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    threshKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    compGainKnob->setBounds(((getWidth() / WIDTH_DIV) * 6) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    ratioKnob->setBounds(((getWidth() / WIDTH_DIV) * 5) - (100 / 2), (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
 
-    bypassDelay->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 3 * (getHeight() / HEIGHT_DIV) - 25, 100, 30);
-    delayFeedbackKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    delayTimeKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    delayVolumeKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
+    bypassDist->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 2 * (getHeight() / HEIGHT_DIV) - 25, 105, 30);
+    driveKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    rangeKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    blendKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    volumeKnob->setBounds(((getWidth() / WIDTH_DIV) * 5) - (100 / 2), 2 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
 
-    bypassReverb->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 4 * (getHeight() / HEIGHT_DIV) - 25, 100, 30);
-    reverbSizeKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    reverbDecayKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    reverbMixKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
+    bypassDelay->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 3 * (getHeight() / HEIGHT_DIV) - 25, 105, 30);
+    delayFeedbackKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    delayTimeKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    delayVolumeKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 3 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
 
-    bypassEQ->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 5 * (getHeight() / HEIGHT_DIV) - 25, 100, 30);
-    lowKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    midKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
-    highKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - (100 / 2), 100, 100);
+    bypassReverb->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 4 * (getHeight() / HEIGHT_DIV) - 25, 105, 30);
+    reverbSizeKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    reverbDecayKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    reverbMixKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 4 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
 
-    cabinetMenu->setBounds((getWidth() / 2) - 75, getHeight() - 70, 150, 50);
+    bypassEQ->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 10, 5 * (getHeight() / HEIGHT_DIV) - 25, 105, 30);
+    lowKnob->setBounds(((getWidth() / WIDTH_DIV) * 2) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    midKnob->setBounds(((getWidth() / WIDTH_DIV) * 3) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+    highKnob->setBounds(((getWidth() / WIDTH_DIV) * 4) - (100 / 2), 5 * (getHeight() / HEIGHT_DIV) - (100 / 2) - B_UP, 100, 100);
+
+    cabinetMenu->setBounds(((getWidth() / WIDTH_DIV) * 1) - (100 / 2) - 20, getHeight() - 65, 750, 50);
 }
 
 void Guitarfxcapstone4AudioProcessorEditor::timerCallback() {

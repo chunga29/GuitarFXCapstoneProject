@@ -24,6 +24,8 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
 {
     state = new AudioProcessorValueTreeState(*this, nullptr);
     state->createAndAddParameter("bypass all", "Bypass All", "Bypass All", NormalisableRange<float>(0.f, 1.f, 1.f), 0.0, nullptr, nullptr);
+    state->createAndAddParameter("input gain", "Input Gain", "Input Gain", NormalisableRange<float>(-15.f, 15.f, 0.01f), 0.0, nullptr, nullptr);
+    state->createAndAddParameter("output gain", "Output Gain", "Output Gain", NormalisableRange<float>(-15.f, 15.f, 0.01f), 0.0, nullptr, nullptr);
 
     state->createAndAddParameter("attack", "Attack", "Attack", NormalisableRange<float>(1.f, 200.f, 0.0001f), 10.0, nullptr, nullptr);
     state->createAndAddParameter("release", "Release", "Release", NormalisableRange<float>(1.f, 500.f, 0.0001f), 100.0, nullptr, nullptr);
@@ -54,7 +56,7 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->createAndAddParameter("bypass reverb", "Bypass Reverb", "Bypass Reverb", NormalisableRange<float>(0.f, 1.f, 1.f), 0.0, nullptr, nullptr);
     state->createAndAddParameter("bypass eq", "Bypass EQ", "Bypass EQ", NormalisableRange<float>(0.f, 1.f, 1.f), 0.0, nullptr, nullptr);
 
-    state->createAndAddParameter("cabinet menu", "Cabinet Menu", "Cabinet Menu", NormalisableRange<float>(1.f, 3.f, 1.f), 1.0, nullptr, nullptr);
+    state->createAndAddParameter("cabinet menu", "Cabinet Menu", "Cabinet Menu", NormalisableRange<float>(1.f, 5.f, 1.f), 1.0, nullptr, nullptr);
 
     state->state = ValueTree("attack");
     state->state = ValueTree("release");
@@ -86,6 +88,8 @@ Guitarfxcapstone4AudioProcessor::Guitarfxcapstone4AudioProcessor()
     state->state = ValueTree("bypass eq");
 
     state->state = ValueTree("cabinet menu");
+    state->state = ValueTree("input gain");
+    state->state = ValueTree("output gain");
 }
 
 Guitarfxcapstone4AudioProcessor::~Guitarfxcapstone4AudioProcessor()
@@ -187,6 +191,16 @@ void Guitarfxcapstone4AudioProcessor::prepareToPlay (double sampleRate, int samp
     (File::SpecialLocationType::userDesktopDirectory).getChildFile("Rocksta Reactions Fender Twin Reverb Seiren Pro R A 8 4 45 45.wav");
     fenderConvolution.loadImpulseResponse(impResponseFender, dsp::Convolution::Stereo::no, dsp::Convolution::Trim::no, 0, dsp::Convolution::Normalise::no);
 
+    randallConvolution.prepare(spec);
+    const File& impResponseRandall = File::getSpecialLocation
+    (File::SpecialLocationType::userDesktopDirectory).getChildFile("Randall RT412 SM57 A 3 0 2 (1).wav");
+    randallConvolution.loadImpulseResponse(impResponseRandall, dsp::Convolution::Stereo::no, dsp::Convolution::Trim::no, 0, dsp::Convolution::Normalise::no);
+
+    kochConvolution.prepare(spec);
+    const File& impResponseKoch = File::getSpecialLocation
+    (File::SpecialLocationType::userDesktopDirectory).getChildFile("Rocksta Reactions Koch MT184S C -1 1 1.wav");
+    kochConvolution.loadImpulseResponse(impResponseKoch, dsp::Convolution::Stereo::no, dsp::Convolution::Trim::no, 0, dsp::Convolution::Normalise::no);
+
     // EQ
     spec.numChannels = 1;
     leftChain.prepare(spec);
@@ -260,8 +274,6 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 {
     juce::ScopedNoDenormals noDenormals;
 
-    rmsLevelLeft = Decibels::gainToDecibels(buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
-
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
@@ -270,6 +282,12 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
 
     auto block = dsp::AudioBlock<float>(buffer);
     auto context = dsp::ProcessContextReplacing<float>(block);
+
+    float iGain = *state->getRawParameterValue("input gain");
+    inputGain.setGainDecibels(iGain);
+    inputGain.process(context);
+
+    rmsLevelLeft = Decibels::gainToDecibels(buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
 
     // Noise Gating
     /*
@@ -496,7 +514,22 @@ void Guitarfxcapstone4AudioProcessor::processBlock (juce::AudioBuffer<float>& bu
             cabinetGain.process(context);
             fenderConvolution.process(context);
         }
+        else if ((int)cabmen->load() == 4) {
+            cabinetGain.setGainDecibels(-19.f);
+            cabinetGain.process(context);
+            randallConvolution.process(context);
+        }
+        else if ((int)cabmen->load() == 5) {
+            cabinetGain.setGainDecibels(-19.f);
+            cabinetGain.process(context);
+            kochConvolution.process(context);
+        }
     }
+
+    float oGain = *state->getRawParameterValue("output gain");
+    outputGain.setGainDecibels(oGain);
+    outputGain.process(context);
+
     rmsLevelRight = Decibels::gainToDecibels(buffer.getRMSLevel(0, 0, buffer.getNumSamples()));
 }
 

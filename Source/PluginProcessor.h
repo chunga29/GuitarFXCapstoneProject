@@ -78,6 +78,9 @@ public:
 
 private:
     ScopedPointer<AudioProcessorValueTreeState> state;
+    dsp::Gain<float> inputGain;
+    dsp::Gain<float> outputGain;
+
     dsp::Compressor<float> compressor;
     dsp::NoiseGate<float> noiseGate;
     dsp::Gain<float> makeupGain;
@@ -87,6 +90,8 @@ private:
     // Cabinets
     dsp::Convolution marshallConvolution;
     dsp::Convolution fenderConvolution;
+    dsp::Convolution randallConvolution;
+    dsp::Convolution kochConvolution;
     dsp::Gain<float> cabinetGain;
     
 
@@ -112,12 +117,10 @@ private:
     juce::dsp::DelayLine <float> ap1{ 400000 };
     juce::dsp::DelayLine <float> ap2{ 400000 };
     juce::dsp::DelayLine <float> ap3{ 400000 };
-
     juce::dsp::DelayLine <float> comb1{ 400000 };
     juce::dsp::DelayLine <float> comb2{ 400000 };
     juce::dsp::DelayLine <float> comb3{ 400000 };
     juce::dsp::DelayLine <float> comb4{ 400000 };
-
 
     float output1 = 0;
     float output2 = 0;
@@ -131,6 +134,8 @@ private:
     float feedForward;
 
     juce::dsp::DryWetMixer <float> mixer;
+
+
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Guitarfxcapstone4AudioProcessor)

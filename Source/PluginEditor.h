@@ -54,6 +54,13 @@ private:
     ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassReverbAttachment;
     ScopedPointer<AudioProcessorValueTreeState::ButtonAttachment> bypassEQAttachment;
 
+    // ----- I/O Gain ----- //
+    ScopedPointer<Slider> inputKnob;
+    ScopedPointer<Slider> outputKnob;
+
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> inputAttachment;
+    ScopedPointer<AudioProcessorValueTreeState::SliderAttachment> outputAttachment;
+
     // ----- Compressor Knobs ----- //
     ScopedPointer<Slider> attackKnob;
     ScopedPointer<Slider> releaseKnob;
